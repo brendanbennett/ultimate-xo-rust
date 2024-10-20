@@ -1,24 +1,39 @@
-
-
 #[derive(Debug)]
 struct Board {
-    cells: [u8; 9]
+    bitboard: [u16; 3] // X: player 0, O: player 1, and last move
 }
 
 impl Board {
-    fn set_cell(&mut self, position: &Position, value: u8) {
-        self.cells[(position.y * 3 + position.x) as usize] = value
+    fn bitboard_idx_from_player(&self, player: Player) -> u8{
+        match player {
+            Player::X => 0,
+            Player::Y => 1,
+        }
+    }
+
+    fn set_cell(&mut self, position: &Position, player: Player) {
+        // Need to update next move
+        let idx = self.bitboard_idx_from_player(player);
+        let mask = (1 as u16) << (position.y * 3 + position.x);
+        bitboard[idx] ^= mask;
     }
 
     fn get_cell(&self, position: &Position) -> u8 {
-        self.cells[(position.y * 3 + position.x) as usize]
+        // Need to decide what this does
+        let mask = (1 as u16) << (position.y * 3 + position.x);
+
     }
 }
 
 #[derive(Debug)]
-struct Position{
+struct Position{ // Add None?
     x: u8,
     y: u8,
+}
+
+enum Player {
+    X,
+    O,
 }
 
 fn build_board() -> Board {
