@@ -2,11 +2,11 @@ use std::fmt;
 
 #[derive(Debug)]
 pub struct Board {
-    bitboards: [u16; 3] // X: player 0, O: player 1, and last move
+    bitboards: [u16; 2] // X: player 0, O: player 1, and last move
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Player {
     X = 0,
     O = 1,
@@ -35,7 +35,8 @@ impl Board {
     pub fn set_cell(&mut self, position: &Position, player: Player) {
         // Need to update next move
         let mask = (1 as u16) << (position.y * 3 + position.x);
-        self.bitboards[player as usize] ^= mask;
+        self.bitboards[player as usize] |= mask;
+        self.bitboards[(1 - player as u8) as usize] &= !mask;
     }
 
     pub fn get_cell(&self, position: &Position) -> Option<Player> {
@@ -70,7 +71,7 @@ impl Board {
 
 impl Default for Board {
     fn default() -> Self {
-        Self { bitboards: [0, 0, 0]}
+        Self { bitboards: [0, 0]}
     }
 }
 
@@ -106,7 +107,7 @@ mod tests {
     #[test]
     fn board_default() {
         let b = Board::default();
-        assert_eq!(b.bitboards, [0,0,0]);
+        assert_eq!(b.bitboards, [0,0]);
     }
 
     #[test]
@@ -118,7 +119,37 @@ mod tests {
 
     #[test]
     fn get_cell() {
-        let b = Board { bitboards: [1, 0, 0] };
+        let b = Board { bitboards: [1, 0] };
         assert_eq!(b.get_cell(&Position { x: 0, y: 0 }), Some(Player::X));
+    }
+
+    #[test]
+    fn set_get_cell() {
+        let mut b = Board::default();
+        let player = Player::X;
+        let pos = Position {x: 1, y: 1};
+        b.set_cell(&pos, player);
+        assert_eq!(b.get_cell(&pos), Some(player));
+    }
+
+    #[test]
+    fn win() {
+        let mut b = Board::default();
+        b.set_cell(&Position {x: 0, y: 1}, Player::X);
+        b.set_cell(&Position {x: 1, y: 0}, Player::X);
+        b.set_cell(&Position {x: 2, y: 2}, Player::X);
+        b.set_cell(&Position {x: 2, y: 0}, Player::O);
+        b.set_cell(&Position {x: 1, y: 1}, Player::O);
+        b.set_cell(&Position {x: 0, y: 2}, Player::O);
+        assert_eq!(b.winner(), Some(Player::O));
+    }
+
+    #[test]
+    fn reset_other_player() {
+        let mut b = Board::default();
+        let pos = Position {x: 1, y: 1};
+        b.set_cell(&pos, Player::X);
+        b.set_cell(&pos, Player::O);
+        assert_eq!(b.get_cell(&pos), Some(Player::O));
     }
 }
