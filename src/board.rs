@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub struct Board {
@@ -14,6 +15,13 @@ pub enum Player {
 
 impl Player {
     const PLAYERS: [Self; 2] = [Player::X, Player::O];
+
+    pub fn other_player(&self) -> Player {
+        match self {
+            Player::X => Player::O,
+            Player::O => Player::X,
+        }
+    }
 }
 
 impl fmt::Display for Player {
@@ -36,7 +44,7 @@ impl Board {
         // Need to update next move
         let mask = (1 as u16) << (position.y * 3 + position.x);
         self.bitboards[player as usize] |= mask;
-        self.bitboards[(1 - player as u8) as usize] &= !mask;
+        self.bitboards[player.other_player() as usize] &= !mask;
     }
 
     pub fn get_cell(&self, position: &Position) -> Option<Player> {
@@ -67,6 +75,26 @@ impl Board {
         }
         None
     }
+
+    fn count_player(&self, player: Player) -> u32 {
+        (self.bitboards[player as usize] << 7).count_ones()
+    }
+
+    pub fn is_full(&self) -> bool {
+        // Assumes board is valid
+        self.count_player(Player::X) + self.count_player(Player::O) == 9
+    }
+
+    pub fn valid_moves(&self) -> Vec<Position> {
+        let valid_bits = !(self.bitboards[0] | self.bitboards[1]);
+        let mut valid_moves: Vec<Position> = Vec::new();
+        for i in 0..9 {
+            if 1 & (valid_bits >> i) == 1 {
+                valid_moves.push(Position::new(i % 3, i / 3))
+            }
+        }
+        valid_moves
+    }
 }
 
 impl Default for Board {
@@ -79,7 +107,7 @@ impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for y in 0..3 {
             for x in 0..3 {
-                let cell = self.get_cell(&Position {x: x as u8, y: y as u8});
+                let cell = self.get_cell(&Position::new(x as u8, y as u8));
                 write!(f, " {} ", cell.map_or(" ".to_string(), |p| p.to_string()))?;
                 if x == 0 || x == 1 {
                     write!(f, "|")?;
@@ -94,10 +122,34 @@ impl fmt::Display for Board {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Position{
     pub x: u8,
     pub y: u8,
+}
+
+impl Position {
+    pub fn new(x: u8, y: u8) -> Self {
+        Self {x: x, y: y}
+    }
+}
+
+impl FromStr for Position {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let split: Vec<&str> = s.split(",").map(|s| s.trim()).collect();
+        if split.len() != 2 {
+            return Err(format!("Move requires 2 arguments, received {} with {}", s, split.len()).to_string());
+        }
+        
+        let x = split[0].parse::<u8>()
+            .map_err(|_| "Invalid x coordinate".to_string())?;
+        let y = split[1].parse::<u8>()
+            .map_err(|_| "Invalid y coordinate".to_string())?;
+
+        Ok(Position::new(x, y))
+    }
 }
 
 #[cfg(test)]
@@ -113,21 +165,21 @@ mod tests {
     #[test]
     fn set_cell() {
         let mut b = Board::default();
-        b.set_cell(&Position {x: 1, y: 1}, Player::X);
+        b.set_cell(&Position::new(1, 1), Player::X);
         assert_eq!(b.bitboards[Player::X as usize], 16);
     }
 
     #[test]
     fn get_cell() {
         let b = Board { bitboards: [1, 0] };
-        assert_eq!(b.get_cell(&Position { x: 0, y: 0 }), Some(Player::X));
+        assert_eq!(b.get_cell(&Position::new(0, 0)), Some(Player::X));
     }
 
     #[test]
     fn set_get_cell() {
         let mut b = Board::default();
         let player = Player::X;
-        let pos = Position {x: 1, y: 1};
+        let pos = Position::new(1, 1);
         b.set_cell(&pos, player);
         assert_eq!(b.get_cell(&pos), Some(player));
     }
@@ -135,21 +187,53 @@ mod tests {
     #[test]
     fn win() {
         let mut b = Board::default();
-        b.set_cell(&Position {x: 0, y: 1}, Player::X);
-        b.set_cell(&Position {x: 1, y: 0}, Player::X);
-        b.set_cell(&Position {x: 2, y: 2}, Player::X);
-        b.set_cell(&Position {x: 2, y: 0}, Player::O);
-        b.set_cell(&Position {x: 1, y: 1}, Player::O);
-        b.set_cell(&Position {x: 0, y: 2}, Player::O);
+        b.set_cell(&Position::new(0, 1), Player::X);
+        b.set_cell(&Position::new(1, 0), Player::X);
+        b.set_cell(&Position::new(2, 2), Player::X);
+        b.set_cell(&Position::new(2, 0), Player::O);
+        b.set_cell(&Position::new(1, 1), Player::O);
+        b.set_cell(&Position::new(0, 2), Player::O);
         assert_eq!(b.winner(), Some(Player::O));
     }
 
     #[test]
     fn reset_other_player() {
         let mut b = Board::default();
-        let pos = Position {x: 1, y: 1};
+        let pos = Position::new(1, 1);
         b.set_cell(&pos, Player::X);
         b.set_cell(&pos, Player::O);
         assert_eq!(b.get_cell(&pos), Some(Player::O));
+    }
+
+    #[test]
+    fn test_count() {
+        let mut b = Board::default();
+        b.set_cell(&Position::new(0, 1), Player::X);
+        b.set_cell(&Position::new(1, 0), Player::X);
+        b.set_cell(&Position::new(2, 2), Player::X);
+        b.set_cell(&Position::new(2, 0), Player::O);
+        b.set_cell(&Position::new(1, 1), Player::O);
+        b.set_cell(&Position::new(0, 2), Player::O);
+        assert_eq!(b.count_player(Player::X), 3);
+        assert_eq!(b.count_player(Player::O), 3);
+    }
+
+    #[test]
+    fn test_valid_moves() {
+        let mut b = Board::default();
+        b.set_cell(&Position::new(0, 1), Player::X);
+        b.set_cell(&Position::new(1, 0), Player::X);
+        b.set_cell(&Position::new(2, 2), Player::X);
+        b.set_cell(&Position::new(2, 0), Player::O);
+        b.set_cell(&Position::new(1, 1), Player::O);
+        b.set_cell(&Position::new(0, 2), Player::O);
+        assert!(b.valid_moves().contains(&Position::new(0, 0)));
+        assert_eq!(b.valid_moves().len(), 3);
+    }
+
+    #[test]
+    fn test_position_parse() {
+        let pos1: Position = "1,2".parse().unwrap();
+        assert!("13eq,3".parse::<Position>().is_err());
     }
 }
