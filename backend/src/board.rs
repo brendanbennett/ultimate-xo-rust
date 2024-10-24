@@ -85,15 +85,15 @@ impl Board {
         self.count_player(Player::X) + self.count_player(Player::O) == 9
     }
 
-    pub fn valid_moves(&self) -> Vec<Position> {
+    pub fn available_moves(&self) -> Vec<Position> {
         let valid_bits = !(self.bitboards[0] | self.bitboards[1]);
-        let mut valid_moves: Vec<Position> = Vec::new();
+        let mut available_moves: Vec<Position> = Vec::new();
         for i in 0..9 {
             if 1 & (valid_bits >> i) == 1 {
-                valid_moves.push(Position::new(i % 3, i / 3))
+                available_moves.push(Position::new(i % 3, i / 3))
             }
         }
-        valid_moves
+        available_moves
     }
 }
 
@@ -131,6 +131,25 @@ pub struct Position{
 impl Position {
     pub fn new(x: u8, y: u8) -> Self {
         Self {x: x, y: y}
+    }
+
+    pub fn from_vec(vec: Vec<String>) -> Result<Self, String> {
+        if vec.len() != 2 {
+            return Err("Incorrect number of coordinates".to_string())
+        }
+
+        let x = vec[0].parse::<u8>()
+            .map_err(|e| format!("Invalid x coordinate: {}", e))?;
+        let y = vec[1].parse::<u8>()
+            .map_err(|e| format!("Invalid x coordinate: {}", e))?;
+        Ok(Self {x: x, y: y})
+    }
+
+    pub fn is_valid(&self) -> bool {
+        if self.x > 2 || self.y > 2 {
+            return false;
+        }
+        true
     }
 }
 
@@ -227,8 +246,8 @@ mod tests {
         b.set_cell(&Position::new(2, 0), Player::O);
         b.set_cell(&Position::new(1, 1), Player::O);
         b.set_cell(&Position::new(0, 2), Player::O);
-        assert!(b.valid_moves().contains(&Position::new(0, 0)));
-        assert_eq!(b.valid_moves().len(), 3);
+        assert!(b.available_moves().contains(&Position::new(0, 0)));
+        assert_eq!(b.available_moves().len(), 3);
     }
 
     #[test]

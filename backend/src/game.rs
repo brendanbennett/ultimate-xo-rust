@@ -18,8 +18,9 @@ impl Default for MatchStatus {
     }
 }
 
-pub enum GameError {
+pub enum MatchError {
     CellOccupied,
+    InvalidMove,
     GameOver,
 }
 
@@ -33,14 +34,18 @@ impl Default for Game {
 }
 
 impl Game {
-    pub fn take_turn(&mut self, position: &Position) -> Result<MatchStatus, GameError> {
+    pub fn take_turn(&mut self, position: &Position) -> Result<MatchStatus, MatchError> {
         let current_player = match self.status {
             MatchStatus::InProgress(player) => player,
-            _ => return Err(GameError::GameOver),
+            _ => return Err(MatchError::GameOver),
         };
 
+        if !position.is_valid() {
+            return Err(MatchError::InvalidMove);
+        }
+
         if self.board.get_cell(position).is_some() {
-            return Err(GameError::CellOccupied);
+            return Err(MatchError::CellOccupied);
         }
         self.board.set_cell(position, current_player);
 
