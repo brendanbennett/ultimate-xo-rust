@@ -1,20 +1,17 @@
-mod board;
-
 use crate::board::{Board, Player, Position};
-use std::io;
 
-struct Game {
+pub struct Game {
     board: Board,
     current_player: Player,
 }
 
-enum GameState {
+pub enum GameState {
     InProgress,
     Won(Player),
     Draw,
 }
 
-enum GameError {
+pub enum GameError {
     CellOccupied,
     GameOver,
 }
@@ -39,7 +36,7 @@ impl Game {
         }
     }
 
-    fn take_turn(&mut self, position: &Position) -> Result<GameState, GameError> {
+    pub fn take_turn(&mut self, position: &Position) -> Result<GameState, GameError> {
         match self.state() {
             GameState::InProgress => (),
             _ => return Err(GameError::GameOver),
@@ -62,33 +59,8 @@ impl Game {
     pub fn current_player(&self) -> Player {
         self.current_player
     }
-}
 
-fn main() {
-    let mut game = Game::default();
-    loop {
-        println!("{}", game.board);
-        println!("Player {}'s turn!", game.current_player());
-        let position = loop {
-            let mut raw_move = String::new();
-            println!("Choose next move: [ x, y ]");
-
-            io::stdin()
-                .read_line(&mut raw_move)
-                .expect("Failed to read line");
-
-            match raw_move.parse() {
-                Ok(pos) => break pos,
-                Err(e) => {println!("Invalid input: {}. Please use format 'x,y'", e); continue;},
-            }
-        };
-
-        match game.take_turn(&position) {
-            Ok(GameState::InProgress) => continue,
-            Ok(GameState::Won(player)) => {println!("Player {} wins!", player); break;},
-            Ok(GameState::Draw) => {println!("Game ended in a draw"); break;},
-            Err(GameError::CellOccupied) => println!("Cell already occupied"),
-            Err(GameError::GameOver) => println!("Game is already over"),
-        }
+    pub fn board(&self) -> Board {
+        self.board.clone()
     }
 }

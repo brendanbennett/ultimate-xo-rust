@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Board {
     bitboards: [u16; 2] // X: player 0, O: player 1, and last move
 }
