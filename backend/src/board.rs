@@ -1,13 +1,15 @@
 use std::fmt;
 use std::str::FromStr;
 
+use serde::Serialize;
+
 #[derive(Debug, Clone)]
 pub struct Board {
     bitboards: [u16; 2] // X: player 0, O: player 1, and last move
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub enum Player {
     X = 0,
     O = 1,
@@ -68,7 +70,7 @@ impl Board {
     pub fn winner(&self) -> Option<Player> {
         for player in Player::PLAYERS {
             for win_case in WINNING {
-                if self.bitboards[player.clone() as usize] == win_case {
+                if !self.bitboards[player.clone() as usize] & win_case == 0 {
                     return Some(player)
                 }
             }
@@ -133,16 +135,11 @@ impl Position {
         Self {x: x, y: y}
     }
 
-    pub fn from_vec(vec: Vec<String>) -> Result<Self, String> {
+    pub fn from_vec(vec: Vec<u32>) -> Result<Self, String> {
         if vec.len() != 2 {
             return Err("Incorrect number of coordinates".to_string())
         }
-
-        let x = vec[0].parse::<u8>()
-            .map_err(|e| format!("Invalid x coordinate: {}", e))?;
-        let y = vec[1].parse::<u8>()
-            .map_err(|e| format!("Invalid x coordinate: {}", e))?;
-        Ok(Self {x: x, y: y})
+        Ok(Self {x: vec[0] as u8, y: vec[1] as u8})
     }
 
     pub fn is_valid(&self) -> bool {
@@ -206,13 +203,16 @@ mod tests {
     #[test]
     fn win() {
         let mut b = Board::default();
-        b.set_cell(&Position::new(0, 1), Player::X);
-        b.set_cell(&Position::new(1, 0), Player::X);
-        b.set_cell(&Position::new(2, 2), Player::X);
-        b.set_cell(&Position::new(2, 0), Player::O);
-        b.set_cell(&Position::new(1, 1), Player::O);
-        b.set_cell(&Position::new(0, 2), Player::O);
-        assert_eq!(b.winner(), Some(Player::O));
+        b.set_cell(&Position::new(0, 0), Player::X);
+        b.set_cell(&Position::new(2, 0), Player::X);
+        b.set_cell(&Position::new(1, 1), Player::X);
+        b.set_cell(&Position::new(1, 2), Player::X);
+        b.set_cell(&Position::new(0, 2), Player::X);
+        b.set_cell(&Position::new(1, 0), Player::O);
+        b.set_cell(&Position::new(0, 1), Player::O);
+        b.set_cell(&Position::new(2, 1), Player::O);
+        b.set_cell(&Position::new(2, 2), Player::O);
+        assert_eq!(b.winner(), Some(Player::X));
     }
 
     #[test]

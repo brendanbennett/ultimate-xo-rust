@@ -4,6 +4,7 @@ mod board;
 use crate::game::{Game, MatchStatus, MatchError};
 use crate::board::{Board, Position, Player};
 use std::io;
+use std::os::unix::fs::PermissionsExt;
 use axum::{
     Json,
     extract::{State, Path},
@@ -12,6 +13,7 @@ use axum::{
     response::{IntoResponse, Response},
     http::StatusCode,
 };
+use axum_macros::debug_handler;
 use std::sync::{Arc, Mutex};
 use serde::Serialize;
 
@@ -22,8 +24,7 @@ struct AppState {
 #[derive(Serialize)]
 struct GameState {
     board: Vec<Option<String>>,
-    current_player: Option<String>,
-    winner: Option<String>,
+    status: MatchStatus,
 }
 
 impl IntoResponse for MatchError {
@@ -42,16 +43,17 @@ async fn game_state(State(state): State<Arc<AppState>>) -> Json<GameState> {
     let game = state.game.lock().unwrap();
     let state = GameState {
         board: flatten_board(&game.board()),
-        current_player: game.current_player().map(|p| p.to_string()),
-        winner: game.winner().map(|p| p.to_string())
+        status: game.status().clone(),
     };
     Json(state)
 }
 
+#[debug_handler]
 async fn make_move(
     State(state): State<Arc<AppState>>, 
-    Json(move_position): Json<Vec<String>>) -> Result<Json<GameState>, MatchError> {
-    
+    Json(move_position): Json<Vec<u32>>) -> Result<Json<GameState>, MatchError> {
+    println!("Move {:?}", move_position);
+
     let mut game = state.game.lock().unwrap();
     let move_position = Position::from_vec(move_position)
         .map_err(|_| MatchError::InvalidMove)?;
@@ -60,8 +62,7 @@ async fn make_move(
 
     let state = GameState {
         board: flatten_board(&game.board()),
-        current_player: game.current_player().map(|p| p.to_string()),
-        winner: game.winner().map(|p| p.to_string())
+        status: match_status,
     };
     Ok(Json(state))
 }
@@ -85,6 +86,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/game", get(game_state))
         .route("/api/game/move", post(make_move))
+        .route("/", get(|| async { "Hello, World!" }))
         .with_state(state);
 
     // run our app with hyper, listening globally on port 3000
