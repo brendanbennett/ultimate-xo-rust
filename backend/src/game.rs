@@ -68,21 +68,11 @@ impl Game {
         &self.board
     }
 
-    pub fn current_player(&self) -> Option<Player> {
-        match self.status {
-            MatchStatus::InProgress {player: current_player} => Some(current_player),
-            _ => None,
-        }
-    }
-
     pub fn status(&self) -> &MatchStatus {
         &self.status
     }
 
-    pub fn winner(&self) -> Option<Player> {
-        match self.status {
-            MatchStatus::Won {player: winner} => Some(winner),
-            _ => None,
-        }
+    pub fn valid_moves(&self) -> Vec<Position> {
+        self.board.empty_cells()
     }
 }

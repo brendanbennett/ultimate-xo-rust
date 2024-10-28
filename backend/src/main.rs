@@ -2,9 +2,7 @@ mod game;
 mod board;
 
 use crate::game::{Game, MatchStatus, MatchError};
-use crate::board::{Board, Position, Player};
-use std::io;
-use std::os::unix::fs::PermissionsExt;
+use crate::board::{Board, Position};
 use axum::{
     Json,
     extract::{State, Path},
@@ -24,6 +22,7 @@ struct AppState {
 #[derive(Serialize)]
 struct GameState {
     board: Vec<Option<String>>,
+    valid_moves: Vec<bool>,
     status: MatchStatus,
 }
 
@@ -43,6 +42,7 @@ async fn game_state(State(state): State<Arc<AppState>>) -> Json<GameState> {
     let game = state.game.lock().unwrap();
     let state = GameState {
         board: flatten_board(&game.board()),
+        valid_moves: flatten_positions(game.valid_moves()),
         status: game.status().clone(),
     };
     Json(state)
@@ -62,9 +62,22 @@ async fn make_move(
 
     let state = GameState {
         board: flatten_board(&game.board()),
+        valid_moves: flatten_positions(game.valid_moves()),
         status: match_status,
     };
     Ok(Json(state))
+}
+
+async fn new_game(State(state): State<Arc<AppState>>) -> Json<GameState> {
+    let mut game = state.game.lock().unwrap();
+    *game = Game::default();
+
+    let state = GameState {
+        board: flatten_board(&game.board()),
+        valid_moves: flatten_positions(game.valid_moves()),
+        status: game.status().clone(),
+    };
+    Json(state)
 }
 
 fn flatten_board(board: &Board) -> Vec<Option<String>> {
@@ -78,6 +91,14 @@ fn flatten_board(board: &Board) -> Vec<Option<String>> {
     flat
 }
 
+fn flatten_positions(positions: Vec<Position>) -> Vec<bool> {
+    let mut flat = [false; 9];
+    for pos in positions {
+        flat[(pos.x + pos.y * 3) as usize] = true
+    }
+    flat.to_vec()
+}
+
 #[tokio::main]
 async fn main() {
     // build our application with a single route
@@ -86,6 +107,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/game", get(game_state))
         .route("/api/game/move", post(make_move))
+        .route("/api/game/new", get(new_game))
         .route("/", get(|| async { "Hello, World!" }))
         .with_state(state);
 

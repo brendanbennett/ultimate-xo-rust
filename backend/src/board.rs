@@ -87,15 +87,15 @@ impl Board {
         self.count_player(Player::X) + self.count_player(Player::O) == 9
     }
 
-    pub fn available_moves(&self) -> Vec<Position> {
+    pub fn empty_cells(&self) -> Vec<Position> {
         let valid_bits = !(self.bitboards[0] | self.bitboards[1]);
-        let mut available_moves: Vec<Position> = Vec::new();
+        let mut empty_cells: Vec<Position> = Vec::new();
         for i in 0..9 {
             if 1 & (valid_bits >> i) == 1 {
-                available_moves.push(Position::new(i % 3, i / 3))
+                empty_cells.push(Position::new(i % 3, i / 3))
             }
         }
-        available_moves
+        empty_cells
     }
 }
 
@@ -246,13 +246,13 @@ mod tests {
         b.set_cell(&Position::new(2, 0), Player::O);
         b.set_cell(&Position::new(1, 1), Player::O);
         b.set_cell(&Position::new(0, 2), Player::O);
-        assert!(b.available_moves().contains(&Position::new(0, 0)));
-        assert_eq!(b.available_moves().len(), 3);
+        assert!(b.empty_cells().contains(&Position::new(0, 0)));
+        assert_eq!(b.empty_cells().len(), 3);
     }
 
     #[test]
     fn test_position_parse() {
-        let pos1: Position = "1,2".parse().unwrap();
+        let _: Position = "1,2".parse().unwrap();
         assert!("13eq,3".parse::<Position>().is_err());
     }
 }

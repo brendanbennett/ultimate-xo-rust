@@ -1,16 +1,18 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 
 function App() {
   const API_URL = import.meta.env.VITE_API_URL;
 
   const [board, setBoard] = useState(Array(9).fill(null));
+  const [validMoves, setValidMoves] = useState(Array(9).fill(false));
   const [currentPlayer, setCurrentPlayer] = useState("X");
   const [matchStatus, setMatchStatus] = useState("InProgress");
   const [message, setMessage] = useState("Player X's turn");
 
   const handleGameState = (state) => {
     setBoard(state["board"]);
+    setValidMoves(state["valid_moves"]);
 
     const status = state["status"];
     setMatchStatus(status["status"]);
@@ -56,16 +58,29 @@ function App() {
     }
   }
 
+  const newGame = async () => {
+    try {
+      const response = await fetch("/api/game/new", {
+        method: 'GET',
+      });
+
+      const data = await response.json();
+      handleGameState(data);
+    } 
+    catch (error) {
+      console.error("Error getting new game: ", error)
+    }
+  }
+
   const renderCell = (x, y) => {
     return (
       <button 
         key={`${x}-${y}`} 
         className="cell" 
-        onClick={() => makeMove(x, y)}
-        disabled={board[x + 3 * y] || matchStatus !== "InProgress"}
+        onMouseDown={() => makeMove(x, y)}
+        disabled={!validMoves[x + 3 * y] || matchStatus !== "InProgress"}
         >
         {board[x + 3 * y]} 
-        {x}-{y}
       </button>
     )
   }
@@ -81,7 +96,8 @@ function App() {
           [...Array(3)].map((_, x) => renderCell(x, y))
         )}
       </div>
-      <p>{message}</p>
+      <p className='message'>{message}</p>
+      <button onClick={() => newGame()} className='new-game'>New game</button>
     </>
   )
 }

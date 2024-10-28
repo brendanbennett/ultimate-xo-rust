@@ -1,5 +1,31 @@
 button.cell {
+  background-color: rgb(157, 160, 206);
+  border: none;
   color: black;
+  font-size: 30pt;
+  border-radius: 15px;
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  color: white;
+}
+
+button.cell:disabled {
+  background-color: rgb(104, 107, 150);
+}
+
+button.new-game {
+  border-style: solid;
+  border-width: 5px;
+  border-radius: 15px;
+  border-color: black;
+  padding: 10px 15px;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  font-size: 20pt;
+  background-color: white;
+}
+
+.message {
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  font-size: 20pt;
 }
 
 .grid-container {
@@ -8,5 +34,5 @@ button.cell {
   grid-auto-rows: 100px;
   gap: 10px;
   width: 300px;
-  height: 300px;
 }
+
