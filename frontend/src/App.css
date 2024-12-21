@@ -1,31 +1,61 @@
 button.cell {
   background-color: rgb(157, 160, 206);
   border: none;
-  color: black;
   font-size: 30pt;
   border-radius: 15px;
   font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  span {
+    opacity: 0;
+  }
+}
+
+button.cell:hover {
   color: white;
+  span {
+    opacity: 1;
+  }
 }
 
 button.cell:disabled {
   background-color: rgb(104, 107, 150);
+  color: white;
+  span {
+    opacity: 1;
+  }
 }
 
 button.new-game {
   border-style: solid;
-  border-width: 5px;
+  border-width: 0px;
   border-radius: 15px;
   border-color: black;
   padding: 10px 15px;
   font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
   font-size: 20pt;
+  color: black;
   background-color: white;
+  cursor: pointer;
+  box-sizing: border-box;
+  width: 200px;
+  height: 70px;
+  transition-property: border-width;
+  transition-duration: 0.1s;
+  box-shadow: inset;
+	box-shadow: 3px 3px 25px -8px #B5B5B5;
+}
+
+button.new-game:hover {
+  border-width: 5px;
+}
+
+button.new-game:active {
+  box-shadow: none;
 }
 
 .message {
   font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
   font-size: 20pt;
+  padding: 10px 10px;
 }
 
 .grid-container {
@@ -36,3 +66,9 @@ button.new-game {
   width: 300px;
 }
 
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
