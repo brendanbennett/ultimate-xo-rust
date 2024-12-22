@@ -73,14 +73,17 @@ function App() {
   }
 
   const renderCell = (x, y) => {
+    const index = x + 3 * y;
+    const isValidMove = validMoves[index] && matchStatus === "InProgress";
+
     return (
       <button
         key={`${x}-${y}`}
-        className="cell"
+        className={`cell ${board[index] ? 'played' : ''}`}
         onMouseDown={() => makeMove(x, y)}
-        disabled={!validMoves[x + 3 * y] || matchStatus !== "InProgress"}
+        disabled={!isValidMove}
       >
-        <span>{board[x + 3 * y] ?? currentPlayer}</span>
+        <span>{board[index] ?? currentPlayer}</span>
       </button>
     )
   }

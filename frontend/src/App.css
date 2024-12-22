@@ -1,5 +1,5 @@
 button.cell {
-  background-color: rgb(157, 160, 206);
+  background-color: #b9bbdb;
   border: none;
   font-size: 30pt;
   border-radius: 15px;
@@ -11,13 +11,14 @@ button.cell {
 
 button.cell:hover {
   color: white;
+  box-shadow: inset 0px 0px 32px -6px #707394;
   span {
     opacity: 1;
   }
 }
 
-button.cell:disabled {
-  background-color: rgb(104, 107, 150);
+button.cell.played {
+  background-color: #707394;
   color: white;
   span {
     opacity: 1;
