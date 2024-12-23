@@ -12,11 +12,17 @@ use axum::{
     http::StatusCode,
 };
 use axum_macros::debug_handler;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use serde::Serialize;
 
 struct AppState {
-    game: Mutex<Game>,
+    game: Mutex<HashMap<String, Game>>,
+}
+
+#[derive(Serialize)]
+enum GameError {
+    GameNotFound,
 }
 
 #[derive(Serialize)]
@@ -50,11 +56,16 @@ async fn game_state(State(state): State<Arc<AppState>>) -> Json<GameState> {
 
 #[debug_handler]
 async fn make_move(
+    Path(game_id): Path<String>,
     State(state): State<Arc<AppState>>, 
     Json(move_position): Json<Vec<u32>>) -> Result<Json<GameState>, MatchError> {
     println!("Move {:?}", move_position);
 
-    let mut game = state.game.lock().unwrap();
+    let mut game = if let Some(game) = state.game.lock().unwrap().get(&game_id) {
+        game
+    } else {
+        return Err(GameError::GameNotFound)
+    };
     let move_position = Position::from_vec(move_position)
         .map_err(|_| MatchError::InvalidMove)?;
 
@@ -68,16 +79,11 @@ async fn make_move(
     Ok(Json(state))
 }
 
-async fn new_game(State(state): State<Arc<AppState>>) -> Json<GameState> {
+async fn new_game(State(state): State<Arc<AppState>>) -> String {
     let mut game = state.game.lock().unwrap();
     *game = Game::default();
 
-    let state = GameState {
-        board: flatten_board(&game.board()),
-        valid_moves: flatten_positions(game.valid_moves()),
-        status: game.status().clone(),
-    };
-    Json(state)
+
 }
 
 fn flatten_board(board: &Board) -> Vec<Option<String>> {
@@ -105,8 +111,8 @@ async fn main() {
     let state = Arc::new(AppState{ game: Mutex::new(Game::default()) });
 
     let app = Router::new()
-        .route("/api/game", get(game_state))
-        .route("/api/game/move", post(make_move))
+        .route("/api/game/:id", get(game_state))
+        .route("/api/game/:id/move", post(make_move))
         .route("/api/game/new", get(new_game))
         .route("/", get(|| async { "Hello, World!" }))
         .with_state(state);
