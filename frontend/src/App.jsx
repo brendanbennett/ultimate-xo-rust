@@ -7,7 +7,7 @@ function App() {
   const [validMoves, setValidMoves] = useState(Array(9).fill(false));
   const [currentPlayer, setCurrentPlayer] = useState("X");
   const [matchStatus, setMatchStatus] = useState("InProgress");
-  const [message, setMessage] = useState("Player X's turn");
+  const [message, setMessage] = useState("Start a new game!");
 
   const handleGameState = (state) => {
     setBoard(state["board"]);
