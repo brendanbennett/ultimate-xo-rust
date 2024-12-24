@@ -22,6 +22,7 @@ impl Default for MatchStatus {
     }
 }
 
+#[derive(Debug)]
 pub enum MatchError {
     CellOccupied,
     InvalidMove,

@@ -1,6 +1,9 @@
 mod game;
 mod board;
+mod errors;
 
+use uuid::Uuid;
+use crate::errors::{ApiError, GameError};
 use crate::game::{Game, MatchStatus, MatchError};
 use crate::board::{Board, Position};
 use axum::{
@@ -8,8 +11,6 @@ use axum::{
     extract::{State, Path},
     routing::{get, post},
     Router,
-    response::{IntoResponse, Response},
-    http::StatusCode,
 };
 use axum_macros::debug_handler;
 use std::collections::HashMap;
@@ -17,12 +18,7 @@ use std::sync::{Arc, Mutex};
 use serde::Serialize;
 
 struct AppState {
-    game: Mutex<HashMap<String, Game>>,
-}
-
-#[derive(Serialize)]
-enum GameError {
-    GameNotFound,
+    games: Mutex<HashMap<String, Game>>,
 }
 
 #[derive(Serialize)]
@@ -32,42 +28,38 @@ struct GameState {
     status: MatchStatus,
 }
 
-impl IntoResponse for MatchError {
-    fn into_response(self) -> Response {
-        let (status, message) = match self {
-            MatchError::GameOver => (StatusCode::BAD_REQUEST, "Game is over"),
-            MatchError::InvalidMove => (StatusCode::BAD_REQUEST, "Invalid Move"),
-            MatchError::CellOccupied => (StatusCode::BAD_REQUEST, "Cell occupied"),
-        };
-
-        (status, message).into_response()
-    }
+fn generate_game_id() -> String {
+    Uuid::new_v4().simple().encode_upper(&mut Uuid::encode_buffer()).to_string()
 }
 
-async fn game_state(State(state): State<Arc<AppState>>) -> Json<GameState> {
-    let game = state.game.lock().unwrap();
+async fn game_state(
+    Path(game_id): Path<String>,
+    State(state): State<Arc<AppState>>
+) -> Result<Json<GameState>, ApiError> {
+    let games = state.games.lock().map_err(|_| GameError::InternalError)?;
+    let game = games.get(&game_id).ok_or(GameError::GameNotFound)?;
     let state = GameState {
         board: flatten_board(&game.board()),
         valid_moves: flatten_positions(game.valid_moves()),
         status: game.status().clone(),
     };
-    Json(state)
+    Ok(Json(state))
 }
 
 #[debug_handler]
 async fn make_move(
     Path(game_id): Path<String>,
     State(state): State<Arc<AppState>>, 
-    Json(move_position): Json<Vec<u32>>) -> Result<Json<GameState>, MatchError> {
+    Json(move_position): Json<Vec<u32>>
+) -> Result<Json<GameState>, ApiError> {
     println!("Move {:?}", move_position);
 
-    let mut game = if let Some(game) = state.game.lock().unwrap().get(&game_id) {
-        game
-    } else {
-        return Err(GameError::GameNotFound)
-    };
+    let mut games = state.games.lock().map_err(|_| GameError::InternalError)?;
+
+    let game = games.get_mut(&game_id).ok_or(GameError::GameNotFound)?;
+
     let move_position = Position::from_vec(move_position)
-        .map_err(|_| MatchError::InvalidMove)?;
+        .map_err(|_| ApiError::InvalidRequest("Invalid move format".to_string()))?;
 
     let match_status = game.take_turn(&move_position)?;
 
@@ -79,11 +71,13 @@ async fn make_move(
     Ok(Json(state))
 }
 
-async fn new_game(State(state): State<Arc<AppState>>) -> String {
-    let mut game = state.game.lock().unwrap();
-    *game = Game::default();
+async fn new_game(State(state): State<Arc<AppState>>) -> Result<Json<String>, ApiError> {
+    let mut games = state.games.lock().map_err(|_| GameError::InternalError)?;
 
+    let game_id = generate_game_id();
+    games.insert(game_id.clone(), Game::default());
 
+    Ok(Json(game_id))
 }
 
 fn flatten_board(board: &Board) -> Vec<Option<String>> {
@@ -108,7 +102,7 @@ fn flatten_positions(positions: Vec<Position>) -> Vec<bool> {
 #[tokio::main]
 async fn main() {
     // build our application with a single route
-    let state = Arc::new(AppState{ game: Mutex::new(Game::default()) });
+    let state = Arc::new(AppState{ games: Mutex::new(HashMap::new()) });
 
     let app = Router::new()
         .route("/api/game/:id", get(game_state))
@@ -118,7 +112,7 @@ async fn main() {
         .with_state(state);
 
     // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:42069").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 

@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 import './App.css'
 
 function App() {
-  const API_URL = import.meta.env.VITE_API_URL;
-
   const [board, setBoard] = useState(Array(9).fill(null));
   const [validMoves, setValidMoves] = useState(Array(9).fill(false));
   const [currentPlayer, setCurrentPlayer] = useState("X");
