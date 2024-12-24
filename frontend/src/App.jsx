@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import './App.css'
 
 function App() {
+  const [gameId, setGameId] = useState(null);
   const [board, setBoard] = useState(Array(9).fill(null));
   const [validMoves, setValidMoves] = useState(Array(9).fill(false));
   const [currentPlayer, setCurrentPlayer] = useState("X");
@@ -24,9 +25,19 @@ function App() {
     }
   }
 
+  const handleNewGame = (data) => {
+    console.log(`New game with id: ${data}`);
+    setGameId(data);
+  } 
+
   const updateGameState = async () => {
+    if (!gameId) {
+      console.error("Game ID is not set!");
+      return;
+    }
+
     try {
-      const response = await fetch("/api/game", {
+      const response = await fetch(`/api/game/${gameId}`, {
         method: 'GET',
       });
 
@@ -40,7 +51,7 @@ function App() {
 
   const makeMove = async (x, y) => {
     try {
-      const response = await fetch("/api/game/move", {
+      const response = await fetch(`/api/game/${gameId}/move`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,7 +74,7 @@ function App() {
       });
 
       const data = await response.json();
-      handleGameState(data);
+      handleNewGame(data);
     }
     catch (error) {
       console.error("Error getting new game: ", error)
@@ -86,9 +97,15 @@ function App() {
     )
   }
 
+  // useEffect(() => {
+  //   updateGameState();
+  // });
+
   useEffect(() => {
-    updateGameState();
-  });
+    if (gameId) {
+      updateGameState();
+    }
+  }, [gameId]);
 
   return (
     <div className='app-container'>

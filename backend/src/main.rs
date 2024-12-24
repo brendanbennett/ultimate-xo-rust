@@ -111,7 +111,7 @@ async fn main() {
         .route("/", get(|| async { "Hello, World!" }))
         .with_state(state);
 
-    // run our app with hyper, listening globally on port 3000
+    // run our app with hyper, listening globally on port 42069
     let listener = tokio::net::TcpListener::bind("0.0.0.0:42069").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
